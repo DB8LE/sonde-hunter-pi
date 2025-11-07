@@ -11,6 +11,9 @@ requires-python = ">=3.10"
 dependencies = [
 ]
 
+[project.optional-dependencies]
+journal = ["systemd-python"]
+
 [tool.poetry]
 packages = [{ include = "src" }]
 include = ["src/resources/**"]
