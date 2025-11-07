@@ -1,0 +1,23 @@
+[project]
+name = "sonde-hunter-pi"
+version = "0.1.0"
+description = "Easily locate radiosondes"
+authors = [
+    {name = "DB8LE",email = "db8le@darc.de"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+]
+
+[tool.poetry]
+packages = [{ include = "src" }]
+include = ["src/resources/**"]
+
+[tool.poetry.scripts]
+sonde-hunter-pi = "src.main:main"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
