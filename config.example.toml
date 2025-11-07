@@ -1,0 +1,7 @@
+[logging]
+log_to_file = false # Enable/disable logging to a file (named <program>.log)
+                    # Tip: on linux logging to the systemd journal is supported
+stdout_debug = false # Enable debug logging level on stdout
+file_debug = false # Enable debug logging level on the log file (if enabled)
+                   # Note: not recommended, as debug log logs a lot of data
+journal_debug = false # Enable debug logging level on the systemd journal (if enabled)
