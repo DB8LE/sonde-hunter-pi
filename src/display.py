@@ -53,8 +53,6 @@ class SoftwareViewerDevice(device):
 class DisplayController():
     def __init__(self,
                  driver: str,
-                 width: int,
-                 height: int,
                  spi_port: int,
                  spi_device: int,
                  gpio_dc: int,
@@ -70,6 +68,8 @@ class DisplayController():
         self.font = ImageFont.truetype(font_path, 20)
 
         # Initialize display
+        width = 320
+        height = 240
         rotate = 2 if flip_display else 0
         if driver == "software":
             self.display = SoftwareViewerDevice(width=width, height=height, rotate=rotate)

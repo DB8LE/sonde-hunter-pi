@@ -22,8 +22,6 @@ def main():
 
     display_controller = display.DisplayController(
         config_data["display"]["driver"],
-        config_data["display"]["width"],
-        config_data["display"]["height"],
         config_data["display"]["spi_port"],
         config_data["display"]["spi_device"],
         config_data["display"]["gpio_dc"],
