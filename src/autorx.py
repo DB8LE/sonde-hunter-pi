@@ -4,10 +4,11 @@ import socket
 import traceback
 from collections import deque
 from threading import Thread
+from typing import Any, Deque, Dict
 
 
 class AutoRXListener():
-    def __init__(self, autorx_host: str, autorx_port: int, out_queue: deque):
+    def __init__(self, autorx_host: str, autorx_port: int, out_queue: Deque[Dict[str, Any]]):
 
         self.autorx_host = autorx_host
         self.autorx_port = autorx_port

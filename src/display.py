@@ -2,12 +2,14 @@ import logging
 import os
 import queue
 import tkinter as tk
+from datetime import datetime
 from luma.core.device import device
 from luma.core.interface.serial import spi, noop
 from luma.core.render import canvas
 from luma.lcd.device import ili9341
 from PIL import Image, ImageFont, ImageTk
 from threading import Thread
+from typing import Any, Dict, Deque, Optional
 
 
 class SoftwareViewerDevice(device):
@@ -51,6 +53,8 @@ class SoftwareViewerDevice(device):
         logging.debug("Image added to viewer image queue")
 
 class DisplayController():
+    TEXT_COLOR = "white"
+
     def __init__(self,
                  driver: str,
                  spi_port: int,
@@ -87,9 +91,22 @@ class DisplayController():
         # Demo counter
         self.counter = 0
 
-    def update(self):
-        with canvas(self.display) as draw:
-            draw.text((0, 0), "Hello, World! "+str(self.counter), font=self.font, fill="white")
-        
+    def update(self, gpsd_data: Dict[str, Any], autorx_data: Optional[Dict[str, Any]]):
+        """Update screen with newest data from AutoRX and GPSD"""
+
+        # Increment demo counter
         self.counter += 1
 
+        # Bottom GPS status text
+        gps_status_text = f"{gpsd_data['satellites']} SVS   {gpsd_data['fix']} FIX"
+
+        # Draw to screen
+        with canvas(self.display) as draw:
+            draw.text((5, 5), "Hello, World! "+str(self.counter), font=self.font, fill=self.TEXT_COLOR)
+
+            # Draw bottom status text
+            draw.text((5, 215), gps_status_text, font=self.font, fill=self.TEXT_COLOR)
+        
+            # Draw time in bottom right corner
+            time_text = datetime.now().strftime("%H:%M")
+            draw.text((265, 215), time_text, font=self.font, fill=self.TEXT_COLOR)

@@ -4,10 +4,10 @@ import socket
 import traceback
 from collections import deque
 from threading import Thread
-from typing import Dict, Any
+from typing import Any, Deque, Dict
 
 class GPSDListener:
-    def __init__(self, gpsd_host: str, gpsd_port: int, out_queue: deque) -> None:
+    def __init__(self, gpsd_host: str, gpsd_port: int, out_queue: Deque[Dict[str, Any]]) -> None:
         self.gpsd_host = gpsd_host
         self.gpsd_port = gpsd_port
         self.out_queue = out_queue
