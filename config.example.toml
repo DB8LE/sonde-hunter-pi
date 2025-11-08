@@ -5,3 +5,7 @@ stdout_debug = false # Enable debug logging level on stdout
 file_debug = false # Enable debug logging level on the log file (if enabled)
                    # Note: not recommended, as debug log logs a lot of data
 journal_debug = false # Enable debug logging level on the systemd journal (if enabled)
+
+[autorx]
+host = "localhost" # Host for payload summaries
+port = 55673 # Port for payload summaries
