@@ -9,3 +9,7 @@ journal_debug = false # Enable debug logging level on the systemd journal (if en
 [autorx]
 host = "localhost" # Host for payload summaries
 port = 55673 # Port for payload summaries
+
+[gpsd]
+host = "localhost" # Host for payload summaries
+port = 2947 # Port for payload summaries
