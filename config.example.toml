@@ -13,3 +13,14 @@ port = 55673 # Port for payload summaries
 [gpsd]
 host = "localhost" # Host for payload summaries
 port = 2947 # Port for payload summaries
+
+[display]
+driver = "ILI9341" # Display driver. Currently only the ILI9341 is supported
+                   # "software" can also be used to display the image as a window on the host
+width = 320 # Display width in pixels. Currently only 320 is tested
+height = 240 # Display height in pixels. Currently only 240 is tested
+flip_display = false # Wether to flip the display 180° or not
+spi_port = 0 # SPI port
+spi_device = 0 # SPI device
+gpio_dc = 23 # Data/Command pin for 4 Wire SPI
+gpio_rst = 24 # Reset pin

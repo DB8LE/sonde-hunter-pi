@@ -1,14 +1,17 @@
 [project]
 name = "sonde-hunter-pi"
 version = "0.1.0"
-description = "Easily locate radiosondes"
+description = "Easily locate radiosondes using a raspberry pi "
 authors = [
     {name = "DB8LE",email = "db8le@darc.de"}
 ]
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10 <4"
 dependencies = [
+    "luma-lcd (>=2.11.0,<3.0.0)",
+    "luma-core (>=2.5.2,<3.0.0)",
+    "pillow (>=12.0.0,<13.0.0)"
 ]
 
 [project.optional-dependencies]

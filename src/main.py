@@ -3,7 +3,7 @@ import time
 import traceback
 from collections import deque
 
-from . import autorx, config, custom_logging, gpsd
+from . import autorx, config, custom_logging, display, gpsd
 
 
 def main():
@@ -20,15 +20,28 @@ def main():
     gpsd_listener = gpsd.GPSDListener(config_data["gpsd"]["host"], config_data["gpsd"]["port"], gpsd_data)
     gpsd_listener.start()
 
+    display_controller = display.DisplayController(
+        config_data["display"]["driver"],
+        config_data["display"]["width"],
+        config_data["display"]["height"],
+        config_data["display"]["spi_port"],
+        config_data["display"]["spi_device"],
+        config_data["display"]["gpio_dc"],
+        config_data["display"]["gpio_rst"],
+        config_data["display"]["flip_display"]
+    )
+
     try:
         while True:
-            time.sleep(1)
-
             if len(autorx_data) != 0:
                 logging.debug("AutoRX: "+str(autorx_data[0]))
 
             if len(gpsd_data) != 0:
                 logging.debug("GPSD: "+str(gpsd_data[0]))
+
+            display_controller.update()
+
+            time.sleep(1)
     except Exception as e:
         logging.error(f"Caught exception: {e}")
         logging.debug(traceback.format_exc())
