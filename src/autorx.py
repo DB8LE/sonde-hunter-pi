@@ -41,7 +41,7 @@ class AutoRXListener():
                 try:
                     packet = json.loads(self._socket.recvfrom(1024)[0])
                     if packet["type"] == "PAYLOAD_SUMMARY":
-                        logging.debug(f"Got packet from sonde {packet["callsign"]}")
+                        logging.debug(f"Got packet from sonde {packet['callsign']}")
 
                         self.out_queue.append(packet)
                 except socket.timeout:
