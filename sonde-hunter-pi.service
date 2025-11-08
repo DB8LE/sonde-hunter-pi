@@ -1,0 +1,16 @@
+[Unit]
+Description=Sonde Hunter Pi
+After=syslog.target
+After=gpsd.service
+After=auto_rx.service
+
+[Service]
+ExecStart=/home/<your_user>/sonde-hunter-pi/venv/bin/python3 /home/<your_user>/sonde-hunter-pi/venv/bin/sonde-hunter-pi
+Restart=always
+RestartSec=120
+WorkingDirectory=/home/<your_user>/sonde-hunter-pi
+User=<your_user>
+SyslogIdentifier=sonde-hunter-pi
+
+[Install]
+WantedBy=multi-user.target
