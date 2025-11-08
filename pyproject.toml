@@ -7,11 +7,13 @@ authors = [
 ]
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.10 <4"
+requires-python = ">=3.10,<4"
 dependencies = [
     "luma-lcd (>=2.11.0,<3.0.0)",
     "luma-core (>=2.5.2,<3.0.0)",
-    "pillow (>=12.0.0,<13.0.0)"
+    "pillow (>=12.0.0,<13.0.0)",
+    "spidev (>=3.8,<4.0)",
+    "rpi-gpio (>=0.7.1,<0.8.0)"
 ]
 
 [project.optional-dependencies]
