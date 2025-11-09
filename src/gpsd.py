@@ -2,7 +2,6 @@ import json
 import logging
 import socket
 import traceback
-from collections import deque
 from threading import Thread
 from typing import Any, Deque, Dict
 

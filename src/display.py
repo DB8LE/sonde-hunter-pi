@@ -11,7 +11,7 @@ from luma.core.render import canvas
 from luma.lcd.device import ili9341
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 from threading import Thread
-from typing import Any, Dict, Literal, Optional, Tuple
+from typing import Any, Deque, Dict, Literal, Optional, Tuple
 
 
 def calculate_bearing(point_a: Tuple[float, float], point_b: Tuple[float, float]) -> float:
@@ -23,7 +23,6 @@ def calculate_bearing(point_a: Tuple[float, float], point_b: Tuple[float, float]
 def latlon_to_human(latlon: float, which: Literal["lat", "lon"], decimals: int) -> str:
     """Converts either a latitude or longitude to a human readable string with a specified amount of decimal places"""
 
-    abc = 1
     latlon_string = "{:.{}f}".format(round(abs(latlon), decimals), decimals)
 
     if which == "lat":
@@ -78,12 +77,13 @@ class DisplayController():
 
     def __init__(
             self,
-            driver: str,
+            driver: Literal["software", "ILI9341"],
             spi_port: int,
             spi_device: int,
             gpio_dc: int,
             gpio_rst: int,
-            flip_display: bool
+            flip_display: bool,
+            touch_data: Optional[Deque[Tuple[int, int]]] = None
         ) -> None:
         
         # Load font
@@ -111,6 +111,8 @@ class DisplayController():
         else:
             logging.error("Unsupported display driver: "+driver)
             exit(1)
+
+        self.touch_data = touch_data
         
         logging.info("Initialized display")
 
@@ -199,6 +201,14 @@ class DisplayController():
 
     def update(self, gpsd_data: Dict[str, Any], autorx_data: Optional[Dict[str, Any]], gps_reliable: bool):
         """Update screen with newest data from AutoRX and GPSD"""
+
+        # Check for touch events
+        if self.touch_data is not None:
+            if len(self.touch_data) > 0:
+                touch_point = self.touch_data[0]
+                self.touch_data.clear()
+
+                logging.debug(f"Display controller got touch at {touch_point}")
 
         # Bottom GPS status text
         gps_status_text = f"{gpsd_data['satellites']} SVS   {gpsd_data['fix']} FIX"

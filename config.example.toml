@@ -22,3 +22,10 @@ spi_port = 0 # SPI port
 spi_device = 0 # SPI device
 gpio_dc = 23 # Data/Command pin for 4 Wire SPI
 gpio_rst = 24 # Reset pin
+
+[touch]
+driver = "XPT2046" # Touch driver. Currently only the XPT2046 is supported
+spi_port = 1 # SPI port
+spi_device = 0 # SPI device
+cs_pin = 27 # Chip select pin
+irq_pin = 26 # Interrupt request pin

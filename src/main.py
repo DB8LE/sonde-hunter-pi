@@ -3,9 +3,9 @@ import signal
 import time
 import traceback
 from collections import deque
-from typing import Any, Deque, Dict
+from typing import Any, Deque, Dict, Tuple
 
-from . import autorx, config, custom_logging, display, gpsd
+from . import autorx, config, custom_logging, display, gpsd, touch
 
 
 def main():
@@ -26,6 +26,19 @@ def main():
     autorx_listener = autorx.AutoRXListener(config_data["autorx"]["host"], config_data["autorx"]["port"], autorx_data)
     autorx_listener.start()
 
+    # Start touch controller
+    touch_data: Deque[Tuple[int, int]] = deque()
+    touch_controller = touch.TouchController(
+        config_data["touch"]["driver"],
+        config_data["touch"]["spi_port"],
+        config_data["touch"]["spi_device"],
+        config_data["touch"]["cs_pin"],
+        config_data["touch"]["irq_pin"],
+        320,
+        280,
+        touch_data
+    )
+
     # Start display controller
     display_controller = display.DisplayController(
         config_data["display"]["driver"],
@@ -33,13 +46,15 @@ def main():
         config_data["display"]["spi_device"],
         config_data["display"]["gpio_dc"],
         config_data["display"]["gpio_rst"],
-        config_data["display"]["flip_display"]
+        config_data["display"]["flip_display"],
+        touch_data
     )
 
     # Define close function
     def close(signum = None, frame = None):
         autorx_listener.close()
         gpsd_listener.close()
+        touch_controller.close()
         display_controller.close()
 
     # Handle SIGINT and SIGTERM by closing

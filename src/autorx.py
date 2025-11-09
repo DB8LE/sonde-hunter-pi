@@ -1,7 +1,6 @@
 import json
 import logging
 import socket
-import time
 import traceback
 from datetime import datetime, timezone
 from threading import Thread
