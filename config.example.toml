@@ -24,6 +24,7 @@ gpio_dc = 23 # Data/Command pin for 4 Wire SPI
 gpio_rst = 24 # Reset pin
 
 [touch]
+enabled = true # Wether to enable the touch function or not
 driver = "XPT2046" # Touch driver. Currently only the XPT2046 is supported
 spi_port = 1 # SPI port
 spi_device = 0 # SPI device

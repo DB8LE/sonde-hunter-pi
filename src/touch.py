@@ -165,6 +165,8 @@ class TouchController:
 
         self.out_queue = output_queue
 
+        logging.info("Initialized touch controller")
+
     def _interrupt_handler(self, x: int, y: int):
         """Handle a touchscreen interrupt"""
 

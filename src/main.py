@@ -3,9 +3,9 @@ import signal
 import time
 import traceback
 from collections import deque
-from typing import Any, Deque, Dict, Tuple
+from typing import Any, Deque, Dict, Optional, Tuple
 
-from . import autorx, config, custom_logging, display, gpsd, touch
+from . import autorx, config, custom_logging, display, gpsd
 
 
 def main():
@@ -26,18 +26,23 @@ def main():
     autorx_listener = autorx.AutoRXListener(config_data["autorx"]["host"], config_data["autorx"]["port"], autorx_data)
     autorx_listener.start()
 
-    # Start touch controller
-    touch_data: Deque[Tuple[int, int]] = deque()
-    touch_controller = touch.TouchController(
-        config_data["touch"]["driver"],
-        config_data["touch"]["spi_port"],
-        config_data["touch"]["spi_device"],
-        config_data["touch"]["cs_pin"],
-        config_data["touch"]["irq_pin"],
-        320,
-        280,
-        touch_data
-    )
+    # If enabled, start touch controller
+    touch_data = None
+    touch_controller = None
+    if config_data["touch"]["enabled"]:
+        from . import touch
+
+        touch_data: Optional[Deque[Tuple[int, int]]] = deque()
+        touch_controller = touch.TouchController(
+            config_data["touch"]["driver"],
+            config_data["touch"]["spi_port"],
+            config_data["touch"]["spi_device"],
+            config_data["touch"]["cs_pin"],
+            config_data["touch"]["irq_pin"],
+            320,
+            280,
+            touch_data
+        )
 
     # Start display controller
     display_controller = display.DisplayController(
@@ -51,11 +56,17 @@ def main():
     )
 
     # Define close function
+    run = True
     def close(signum = None, frame = None):
+        nonlocal run
+        run = False
+
         autorx_listener.close()
         gpsd_listener.close()
-        touch_controller.close()
         display_controller.close()
+
+        if touch_controller is not None:
+            touch_controller.close()
 
     # Handle SIGINT and SIGTERM by closing
     signal.signal(signal.SIGINT, close)
@@ -75,7 +86,7 @@ def main():
         # Start main loop
         logging.info("Entering main loop")
         gps_fixes = deque(maxlen=10)
-        while True:
+        while run:
             # Read latest GPSD and AutoRX data
             latest_gpsd_data = gpsd_data[0]
             latest_autorx_data = None if len(autorx_data) == 0 else autorx_data[0]
@@ -98,5 +109,3 @@ def main():
         logging.debug(traceback.format_exc())
     except KeyboardInterrupt:
         logging.info("Caught KeyboardInterrupt, shutting down")
-    finally:
-        close()
