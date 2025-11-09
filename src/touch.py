@@ -116,8 +116,9 @@ class Xpt2046:
     def raw_touch(self):
         """Read raw touch coordinates"""
 
-        x = self.send_command(self.GET_X)
-        y = self.send_command(self.GET_Y)
+        # At least on my XPT2046, these are inverted??
+        y = self.send_command(self.GET_X)
+        x = self.send_command(self.GET_Y)
 
         if self.min_x <= x <= self.max_x and self.min_y <= y <= self.max_y:
             return x, y
@@ -143,6 +144,7 @@ class TouchController:
             irq_pin: int,
             display_width: int,
             display_height: int,
+            flip_touch: bool,
             output_queue: Deque[Tuple[int, int]]
         ) -> None:
         
@@ -163,6 +165,9 @@ class TouchController:
             logging.error("Unsupported touch driver: "+driver)
             exit(1)
 
+        self.display_width = display_width
+        self.display_height = display_height
+        self.flip_touch = flip_touch
         self.out_queue = output_queue
 
         logging.info("Initialized touch controller")
@@ -170,6 +175,9 @@ class TouchController:
     def _interrupt_handler(self, x: int, y: int):
         """Handle a touchscreen interrupt"""
 
+        if self.flip_touch:
+            x = self.display_width - x
+            y = self.display_height - y
         self.out_queue.append((x, y))
 
     def close(self):

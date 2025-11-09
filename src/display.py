@@ -112,7 +112,12 @@ class DisplayController():
             logging.error("Unsupported display driver: "+driver)
             exit(1)
 
+        # Set up touchscreen
         self.touch_data = touch_data
+        self.touch_buttons = [
+            # start_x, start_y, end_x, end_y, target func.
+            (69, 40, 15, 4, self._example_button_touched)
+        ]
         
         logging.info("Initialized display")
 
@@ -199,6 +204,19 @@ class DisplayController():
             # Draw sonde data text to screen
             draw.text((5, 5+sonde_data_shift), sonde_data_text, font=self.font, fill=self.TEXT_COLOR)
 
+    def _example_button_touched(self):
+        """Example button was touched"""
+
+        logging.info("Example button touched!")
+
+    def _check_touch(self, touch_point: Tuple[int, int]):
+        """Trigger any buttons for a certain touch location"""
+
+        touch_x, touch_y = touch_point
+        for start_x, start_y, end_x, end_y, target in self.touch_buttons:
+            if (touch_x <= start_x) and (touch_y <= start_y) and (touch_x >= end_x) and (touch_y >= end_y):
+                target()
+
     def update(self, gpsd_data: Dict[str, Any], autorx_data: Optional[Dict[str, Any]], gps_reliable: bool):
         """Update screen with newest data from AutoRX and GPSD"""
 
@@ -209,6 +227,8 @@ class DisplayController():
                 self.touch_data.clear()
 
                 logging.debug(f"Display controller got touch at {touch_point}")
+
+                self._check_touch(touch_point)
 
         # Bottom GPS status text
         gps_status_text = f"{gpsd_data['satellites']} SVS   {gpsd_data['fix']} FIX"

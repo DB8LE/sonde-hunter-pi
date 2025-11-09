@@ -41,6 +41,7 @@ def main():
             config_data["touch"]["irq_pin"],
             320,
             280,
+            config_data["display"]["flip_display"],
             touch_data
         )
 
