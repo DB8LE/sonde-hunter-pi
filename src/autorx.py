@@ -1,11 +1,13 @@
 import json
 import logging
 import socket
+import time
 import traceback
-from collections import deque
+from datetime import datetime, timezone
 from threading import Thread
 from typing import Any, Deque, Dict
 
+GARBAGE_COLLECT_AGE = 60*60 # Maximum age for output data until it's discarded in seconds
 
 class AutoRXListener():
     def __init__(self, autorx_host: str, autorx_port: int, out_queue: Deque[Dict[str, Any]]):
@@ -17,6 +19,17 @@ class AutoRXListener():
         self._run_listener = False
         self._listener_thread = None
         self._socket = None
+
+    def _garbage_collect_output(self):
+        """Check if data in output is old and if it should be discarded"""
+
+        if len(self.out_queue) == 0:
+            return
+
+        output_data_age = (self.out_queue[0]["time"] - datetime.now(timezone.utc)).total_seconds()
+        if output_data_age >= GARBAGE_COLLECT_AGE:
+            logging.info(f"Discarding sonde data due to it being more that {GARBAGE_COLLECT_AGE/60}min old")
+            self.out_queue.clear()
 
     def _listen(self):
         """Listen for payload summaries from autorx"""
@@ -37,6 +50,7 @@ class AutoRXListener():
             # Start listening for packets
             logging.info(f"Started AutoRX listener on {self.autorx_host}:{self.autorx_port}")
             self._run_listener = True
+            garbage_collect_counter = 0
             while self._run_listener:
                 # Try to receive a packet
                 try:
@@ -44,9 +58,18 @@ class AutoRXListener():
                     if packet["type"] == "PAYLOAD_SUMMARY":
                         logging.debug(f"Got packet from sonde {packet['callsign']}")
 
+                        # Add time to packet
+                        packet["time"] = datetime.now(timezone.utc)
+
                         self.out_queue.append(packet)
                 except socket.timeout:
                     pass
+
+                # Garbage collect output every 10th loop (every 10 seconds)
+                garbage_collect_counter += 1
+                if garbage_collect_counter == 10:
+                    self._garbage_collect_output()
+                    garbage_collect_counter = 0
         except (KeyboardInterrupt, Exception) as e:
             logging.error("Caught exception while running AutoRX listener: "+str(e))
             logging.info(traceback.format_exc())
