@@ -216,3 +216,6 @@ class DisplayController():
             # Draw time in bottom right corner
             time_text = datetime.now().strftime("%H:%M")
             draw.text((265, 215), time_text, font=self.font, fill=self.TEXT_COLOR)
+    
+    def close(self):
+        self.display.cleanup()

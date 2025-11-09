@@ -1,4 +1,5 @@
 import logging
+import signal
 import time
 import traceback
 from collections import deque
@@ -34,6 +35,16 @@ def main():
         config_data["display"]["gpio_rst"],
         config_data["display"]["flip_display"]
     )
+
+    # Define close function
+    def close(signum = None, frame = None):
+        autorx_listener.close()
+        gpsd_listener.close()
+        display_controller.close()
+
+    # Handle SIGINT and SIGTERM by closing
+    signal.signal(signal.SIGINT, close)
+    signal.signal(signal.SIGTERM, close)
 
     try:
         # Wait until GPSD listener outputs data (should happen almost immediatly, just to be safe)
@@ -73,5 +84,4 @@ def main():
     except KeyboardInterrupt:
         logging.info("Caught KeyboardInterrupt, shutting down")
     finally:
-        autorx_listener.close()
-        gpsd_listener.close()
+        close()
