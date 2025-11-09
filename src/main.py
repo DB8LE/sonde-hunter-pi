@@ -40,7 +40,7 @@ def main():
             config_data["touch"]["cs_pin"],
             config_data["touch"]["irq_pin"],
             320,
-            280,
+            240,
             config_data["display"]["flip_display"],
             touch_data
         )

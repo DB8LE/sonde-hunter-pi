@@ -1,7 +1,9 @@
 import geopy.distance
 import logging
 import os
+import qrcode
 import queue
+import time
 import tkinter as tk
 from datetime import datetime, timezone
 from geographiclib.geodesic import Geodesic
@@ -116,9 +118,15 @@ class DisplayController():
         self.touch_data = touch_data
         self.touch_buttons = [
             # start_x, start_y, end_x, end_y, target func.
-            (69, 40, 15, 4, self._example_button_touched)
+            (100, 30, 70, 5, self._show_geo_qr)
         ]
+
+        # Latest sonde position (for QR code)
+        self.last_sonde_position: Optional[Tuple[float, float, datetime]] = None
         
+        # Sleep variable
+        self.sleep_time = 0
+
         logging.info("Initialized display")
 
     def _display_idle_screen(self, draw: ImageDraw.ImageDraw):
@@ -204,37 +212,91 @@ class DisplayController():
             # Draw sonde data text to screen
             draw.text((5, 5+sonde_data_shift), sonde_data_text, font=self.font, fill=self.TEXT_COLOR)
 
-    def _example_button_touched(self):
-        """Example button was touched"""
+    def _show_geo_qr(self, draw: ImageDraw.ImageDraw):
+        """Display the sonde geolocation QR code"""
 
-        logging.info("Example button touched!")
+        # Check if theres any sonde data available
+        if self.last_sonde_position is None:
+            draw.text((5, 5), "No sonde data yet", font=self.head_font, fill=self.TEXT_COLOR)
+            self.sleep_time = 3
 
-    def _check_touch(self, touch_point: Tuple[int, int]):
-        """Trigger any buttons for a certain touch location"""
+            return
 
+        logging.debug("Showing sonde geolocation QR code")
+
+        # Generate the QR code
+        geo_data = f"geo:{self.last_sonde_position[0]},{self.last_sonde_position[1]}"
+
+        qr_code = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=7,
+            border=4,
+        )
+        qr_code.add_data(geo_data)
+        qr_code.make(fit=True)
+
+        qr_image = qr_code.make_image(fill_color="black", back_color="white")
+        qr_image = qr_image.convert("RGBA")
+
+        # TODO: maybe also draw how old the data in the QR is?
+        # Draw QR code onto canvas
+        for x in range(qr_image.width):
+            for y in range(qr_image.height):
+                pixel = qr_image.getpixel((x, y))
+                draw.point((x, y), fill=pixel)
+
+        self.sleep_time = 5
+
+    def _check_touch(self, touch_point: Tuple[int, int], draw: ImageDraw.ImageDraw) -> bool:
+        """Trigger any buttons for a certain touch location. Returns true if button was triggered"""
+
+        button_triggered = False
         touch_x, touch_y = touch_point
         for start_x, start_y, end_x, end_y, target in self.touch_buttons:
             if (touch_x <= start_x) and (touch_y <= start_y) and (touch_x >= end_x) and (touch_y >= end_y):
-                target()
+                button_triggered = True
+                target(draw)
+
+        return button_triggered
 
     def update(self, gpsd_data: Dict[str, Any], autorx_data: Optional[Dict[str, Any]], gps_reliable: bool):
         """Update screen with newest data from AutoRX and GPSD"""
 
-        # Check for touch events
-        if self.touch_data is not None:
-            if len(self.touch_data) > 0:
-                touch_point = self.touch_data[0]
-                self.touch_data.clear()
+        # Check if update loop should sleep
+        if self.sleep_time > 0:
+            print("sleepy")
+            time.sleep(self.sleep_time)
+            self.sleep_time = 0
 
-                logging.debug(f"Display controller got touch at {touch_point}")
+            return # Return cause the data is probably outdated now
 
-                self._check_touch(touch_point)
+        # Update latest sonde position
+        if autorx_data is not None:
+            self.last_sonde_position = (
+                round(autorx_data["latitude"], 5),
+                round(autorx_data["longitude"], 5),
+                autorx_data["time"]
+            )
 
         # Bottom GPS status text
         gps_status_text = f"{gpsd_data['satellites']} SVS   {gpsd_data['fix']} FIX"
 
         # Draw to screen
         with canvas(self.display) as draw:
+            # Check for touch events
+            if self.touch_data is not None:
+                if len(self.touch_data) > 0:
+                    touch_point = self.touch_data[0]
+                    self.touch_data.clear()
+
+                    logging.debug(f"Display controller got touch at {touch_point}")
+
+                    button_triggered = self._check_touch(touch_point, draw)
+                    if button_triggered: # If a button was triggered, skip this update cycle
+                        return
+
+            # Display either idle or tracking screen
             if autorx_data is None:
                 self._display_idle_screen(draw)
             else:
@@ -242,6 +304,9 @@ class DisplayController():
 
             # Draw bottom status text
             draw.text((5, 215), gps_status_text, font=self.font, fill=self.TEXT_COLOR)
+
+            # Draw QR button
+            draw.text((230, 215), "QR", font=self.font, fill="yellow")
         
             # Draw time in bottom right corner
             time_text = datetime.now().strftime("%H:%M")
