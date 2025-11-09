@@ -42,18 +42,16 @@ class GPSDListener:
             if response["class"] == "TPV":
                 fix = response["mode"]
 
+                out["fix"] = "NO"
                 if fix > 1:
                     out["latitude"] = response["lat"]
                     out["longitude"] = response["lon"]
+                    out["fix"] = str(fix)+"D"
 
-                if fix <= 1:
-                    out["fix"] = "NO"
-                elif fix == 2:
-                    out["fix"] = "2D"
-                elif fix == 3:
-                    out["fix"] = "3D"
+                if fix == 3:
                     out["altitude"] = response["alt"]
             elif response["class"] == "SKY":
+                # Satellites field is only sent every ~60 seconds
                 if "satellites" in response:
                     used = 0
                     for satellite in response["satellites"]:
@@ -87,6 +85,8 @@ class GPSDListener:
                     version = response["release"]
                 else:
                     raise ValueError("First message from GPSD was not version info.")
+            except KeyError as e:
+                logging.warning("Couldn't receive version header from GPSD, missing key: "+str(e))
             except Exception as e:
                 logging.warning("Couldn't receive version header from GPSD: "+str(e))
 

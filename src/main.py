@@ -34,19 +34,29 @@ def main():
         config_data["display"]["gpio_rst"],
         config_data["display"]["flip_display"]
     )
-
-    # Wait until GPSD listener outputs data (should happen almost immediatly, just to be safe)
-    while len(gpsd_data) == 0:
-        pass
-
+    
     try:
+        # Wait until GPSD listener outputs data (should happen almost immediatly, just to be safe)
+        logging.debug("Waiting for first GPSD data")
+        start_wait = time.time()
+        while len(gpsd_data) == 0:
+            if (time.time() - start_wait) >= 10:
+                logging.error("No data received from GPSD within 10 seconds")
+                exit(1)
+            
+            time.sleep(0.5)
+
+        # Start main loop
+        logging.info("Entering main loop")
         while True:
+            # Read latest GPSD and AutoRX data
             latest_gpsd_data = gpsd_data[0]
             latest_autorx_data = None if len(autorx_data) == 0 else autorx_data[0]
 
             logging.debug("AutoRX: "+str(latest_autorx_data))
             logging.debug("GPSD: "+str(latest_gpsd_data))
 
+            # Update display
             display_controller.update(latest_gpsd_data, latest_autorx_data)
 
             time.sleep(1)
