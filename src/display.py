@@ -5,6 +5,7 @@ import qrcode
 import queue
 import time
 import tkinter as tk
+from collections import deque
 from datetime import datetime, timezone
 from geographiclib.geodesic import Geodesic
 from luma.core.device import device
@@ -35,10 +36,12 @@ def latlon_to_human(latlon: float, which: Literal["lat", "lon"], decimals: int) 
     return latlon_string
 
 class SoftwareViewerDevice(device):
-    def __init__(self, width: int, height: int, rotate: int = 0, mode: str = "RGB", **kwargs):
+    def __init__(self, width: int, height: int, rotate: int = 0, mode: str = "RGB", touch_data: Optional[Deque] = None):
         super(SoftwareViewerDevice, self).__init__(serial_interface=noop())
         self.capabilities(width, height, rotate, mode)
+
         self.image_queue = queue.Queue()
+        self.touch_queue = touch_data
 
     def _image_update_loop(self):
         try:
@@ -57,13 +60,39 @@ class SoftwareViewerDevice(device):
                 self.tk_canvas.itemconfig(self._image_item, image=tk_image)
 
         self.tk_root.after(100, self._image_update_loop)
+
+    def _mouse_click_callback(self, event: tk.Event):
+        """Handle mouse clicks on the canvas"""
+
+        assert self.touch_queue is not None
+
+        # If screen is not flipped, touch coordinated need to be inverted to match usual driver output
+        if self.rotate == 0:
+            x = self.width - event.x
+            y = self.height - event.y
+        else:
+            x = event.x
+            y = event.y
+
+        self.touch_queue.append((x, y))
     
     def run_tkinter(self):
+        """Run tkinter and display images onto canvas"""
+
+        # Initialize tkinter
         self.tk_root = tk.Tk()
         self.tk_root.title("Sonde Hunter Pi View")
         self.tk_root.geometry(f"{self.width}x{self.height}")
+        
+        # Add canvas for the display image
         self.tk_canvas = tk.Canvas(self.tk_root, width=self.width, height=self.height)
         self.tk_canvas.pack()
+
+        # Bind mouse clicks on canvas to trigger mouse click callback (if touch queue was provided)
+        if self.touch_queue is not None:
+            self.tk_canvas.bind("<Button-1>", self._mouse_click_callback)
+
+        # Start image update loop and enter main loop
         self._image_update_loop()
         self.tk_root.mainloop()
 
@@ -102,7 +131,11 @@ class DisplayController():
         height = 240
         rotate = 2 if flip_display else 0
         if driver == "software":
-            self.display = SoftwareViewerDevice(width=width, height=height, rotate=rotate)
+            # If normal touch is disabled, make a touch queue for the software viewer
+            if touch_data is None:
+                touch_data = deque(maxlen=1)
+
+            self.display = SoftwareViewerDevice(width=width, height=height, rotate=rotate, touch_data=touch_data)
 
             # Run tkinter window in seperate thread
             Thread(target=self.display.run_tkinter, daemon=True).start()
@@ -120,6 +153,7 @@ class DisplayController():
             # start_x, start_y, end_x, end_y, target func.
             (100, 30, 70, 5, self._show_geo_qr)
         ]
+        self.block_touch = False
 
         # Latest sonde position (for QR code)
         self.last_sonde_position: Optional[Tuple[float, float, datetime]] = None
@@ -256,6 +290,7 @@ class DisplayController():
         for start_x, start_y, end_x, end_y, target in self.touch_buttons:
             if (touch_x <= start_x) and (touch_y <= start_y) and (touch_x >= end_x) and (touch_y >= end_y):
                 button_triggered = True
+                self.block_touch = True # Block touch so the user can't press buttons during any wait time
                 target(draw)
 
         return button_triggered
@@ -265,7 +300,8 @@ class DisplayController():
 
         # Check if update loop should sleep
         if self.sleep_time > 0:
-            print("sleepy")
+            logging.debug(f"Update loop sleeping for {self.sleep_time} seconds")
+
             time.sleep(self.sleep_time)
             self.sleep_time = 0
 
@@ -280,12 +316,17 @@ class DisplayController():
             )
 
         # Bottom GPS status text
-        gps_status_text = f"{gpsd_data['satellites']} SVS   {gpsd_data['fix']} FIX"
+        gps_satellites = "?" if "satellites" not in gpsd_data else gpsd_data['satellites']
+        gps_status_text = f"{gps_satellites} SVS   {gpsd_data['fix']} FIX"
 
         # Draw to screen
         with canvas(self.display) as draw:
             # Check for touch events
             if self.touch_data is not None:
+                if self.block_touch:
+                    self.touch_data.clear()
+                    logging.debug("Discarded touch data due to touch being blocked")
+                
                 if len(self.touch_data) > 0:
                     touch_point = self.touch_data[0]
                     self.touch_data.clear()
@@ -293,8 +334,13 @@ class DisplayController():
                     logging.debug(f"Display controller got touch at {touch_point}")
 
                     button_triggered = self._check_touch(touch_point, draw)
+
                     if button_triggered: # If a button was triggered, skip this update cycle
+
                         return
+                    
+            # Ensure touch is not blocked
+            self.block_touch = False
 
             # Display either idle or tracking screen
             if autorx_data is None:
