@@ -273,12 +273,17 @@ class DisplayController():
         qr_image = qr_code.make_image(fill_color="black", back_color="white")
         qr_image = qr_image.convert("RGBA")
 
+        # Calculate offset for QR code to center it
+        qr_offset_x = round((self.display.width/2) - (qr_image.width/2))   # round is theoretically not needed,
+        qr_offset_y = round((self.display.height/2) - (qr_image.height/2)) # but who knows what resolutions will be
+        #                                                                    supported in the future
+
         # TODO: maybe also draw how old the data in the QR is?
         # Draw QR code onto canvas
         for x in range(qr_image.width):
             for y in range(qr_image.height):
                 pixel = qr_image.getpixel((x, y))
-                draw.point((x, y), fill=pixel)
+                draw.point((qr_offset_x + x, qr_offset_y + y), fill=pixel)
 
         self.sleep_time = 5
 
