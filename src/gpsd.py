@@ -50,6 +50,11 @@ class GPSDListener:
                 if fix == 3:
                     out["altitude"] = response["alt"]
             elif response["class"] == "SKY":
+                if "pdop" in response:
+                    out["pdop"] = response["pdop"]
+                else:
+                    out["pdop"] = None
+
                 # Satellites field is only sent every ~60 seconds
                 if "satellites" in response:
                     used = 0
@@ -90,7 +95,7 @@ class GPSDListener:
                 logging.warning("Couldn't receive version header from GPSD: "+str(e))
 
             # Push dict with placeholders into output
-            latest_output = {"latitude": 0.0, "longitude": 0.0, "altitude": 0.0, "satellites": 0, "fix": "NO"}
+            latest_output = {"latitude": 0.0, "longitude": 0.0, "altitude": 0.0, "satellites": 0, "fix": "NO", "pdop": None}
             self.out_queue.append(latest_output)
 
             # Start listening

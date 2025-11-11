@@ -321,8 +321,9 @@ class DisplayController():
             )
 
         # Bottom GPS status text
+        gps_pdop = "" if gpsd_data["pdop"] is None else "P{:.1f}".format(round(gpsd_data["pdop"], 1))
         gps_satellites = "?" if "satellites" not in gpsd_data else gpsd_data['satellites']
-        gps_status_text = f"{gps_satellites} SVS   {gpsd_data['fix']} FIX"
+        gps_status_text = f"{gps_satellites} SVS  {gpsd_data['fix']} FIX  {gps_pdop}"
 
         # Draw to screen
         with canvas(self.display) as draw:
